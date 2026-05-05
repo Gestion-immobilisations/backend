@@ -1,0 +1,63 @@
+# 🐍 Python
+
+**pycache**/
+*.py[cod]
+*$py.class
+
+# 🔧 Environnement virtuel
+
+.venv/
+venv/
+env/
+ENV/
+
+# 📦 Dépendances / packaging
+
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# 📄 Logs
+
+*.log
+
+# 🔐 Variables d'environnement
+
+.env
+.env.*
+
+# 🗄️ Base de données locale
+
+*.db
+*.sqlite3
+
+# ⚙️ Fichiers IDE
+
+.vscode/
+.idea/
+
+# 🧪 Tests / couverture
+
+.coverage
+htmlcov/
+.pytest_cache/
+
+# 🚀 FastAPI / Uvicorn
+
+*.pid
+
+# 📁 Fichiers système
+
+.DS_Store
+Thumbs.db
+
+# 🔄 Migrations (optionnel si tu utilises Alembic)
+
+# migrations/
+
+# alembic.ini
+
+# 🐳 Docker (si utilisé)
+
+docker-compose.override.yml
