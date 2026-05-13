@@ -7,10 +7,10 @@ from urllib.parse import quote_plus
 class Settings(BaseSettings):
     # === Base de données ===
     POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "@@@@"  # ← Votre mot de passe avec @
+    POSTGRES_PASSWORD: str = "7234"  # ← Votre mot de passe avec @
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: str = "5432"
-    POSTGRES_DB: str = "gestion_immobilisationsDB"
+    POSTGRES_DB: str = "gestion_immobilisations"
     
     # === Construction SÉCURISÉE de l'URL de connexion ===
     @property
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
         )
     
     # === Sécurité JWT ===
-    SECRET_KEY: str = "Ton_Code_Securite_3000"
+    SECRET_KEY: str = "aCQ3jPNuPqa69hT0QxV5QgPDzagml8s48pw9PvTYxss"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     

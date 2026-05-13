@@ -5,6 +5,7 @@ class RoleEnum(str, Enum):
     DG = "DG"
     COMPTABLE = "COMPTABLE"
     TECHNICIEN = "TECHNICIEN"
+    MAGASINIER = "MAGASINIER"
 
 class StatutBienEnum(str, Enum):
     NEUF = "neuf"
