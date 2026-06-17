@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import Optional
 from ...core.database import get_db
 from ...models.vehicule import Vehicule
-from ...core.security import get_current_user
+from ...api.dependencies import get_current_user  # ← changement
 from ...models.utilisateur import Utilisateur
 
-router = APIRouter(prefix="/api/vehicules", tags=["Véhicules"])
+router = APIRouter(prefix="/vehicules", tags=["Véhicules"])  # ← suppression de /api
 
 @router.get("/")
 async def get_vehicules(
@@ -16,12 +16,9 @@ async def get_vehicules(
     db: Session = Depends(get_db),
     current_user: Utilisateur = Depends(get_current_user)
 ):
-    """Récupère tous les véhicules"""
     query = db.query(Vehicule)
-    
     if type_vehicule:
         query = query.filter(Vehicule.type_vehicule == type_vehicule)
-    
     vehicules = query.offset(skip).limit(limit).all()
     return {"total": len(vehicules), "vehicules": vehicules}
 
@@ -31,7 +28,6 @@ async def get_vehicule(
     db: Session = Depends(get_db),
     current_user: Utilisateur = Depends(get_current_user)
 ):
-    """Récupère un véhicule spécifique"""
     vehicule = db.query(Vehicule).filter(Vehicule.id_bien == bien_id).first()
     if not vehicule:
         raise HTTPException(status_code=404, detail="Véhicule non trouvé")

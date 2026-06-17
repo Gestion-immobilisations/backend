@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
-from typing import Any, List
+from typing import Any
 
 from ...core.database import get_db
 from ...schemas.auth import (
@@ -21,18 +21,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
 
-
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 def login(
+    login_data: LoginRequest,  # ← utilisation du schéma
     request: Request,
-    email: str,
-    mot_de_passe: str,
     db: Session = Depends(get_db)
 ) -> Any:
     audit_service = AuditService()
     
     # Authentification
-    user = AuthService.authenticate_user(db, email, mot_de_passe)
+    user = AuthService.authenticate_user(db, login_data.email, login_data.mot_de_passe)
     
     if not user:
         audit_service.log_action(
@@ -42,25 +40,18 @@ def login(
             record_id=None,
             action="LOGIN_FAILED",
             anciennes_valeurs=None,
-            nouvelles_valeurs={"email_tente": email, "ip": request.client.host}
+            nouvelles_valeurs={"email_tente": login_data.email, "ip": request.client.host}
         )
-        
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou mot de passe incorrect",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Génération des tokens
     tokens = AuthService.create_tokens(user.id)
-    
-    # Mise à jour de la dernière connexion
     AuthService.update_last_login(db, user, audit_service)
     
-    # ✅ Récupération des rôles - FORCER une liste
     roles = AuthService.get_user_roles(db, user)
-    
-    # ✅ S'assurer que roles est une liste, même si vide
     if not roles:
         roles = []
     elif isinstance(roles, str):
@@ -68,7 +59,6 @@ def login(
     
     logger.info(f"✅ Connexion réussie - Email: {user.email}, Rôles: {roles}")
     
-    # Préparation de la réponse utilisateur
     user_response = UserAuthResponse(
         id=user.id,
         email=user.email,
@@ -76,7 +66,7 @@ def login(
         post_nom=user.post_nom,
         prenom=user.prenom,
         telephone=user.telephone,
-        roles=roles,  # ✅ Maintenant c'est une liste garantie
+        roles=roles,
         est_actif=user.est_actif,
         last_login=user.last_login
     )
@@ -92,18 +82,12 @@ def login(
         user=user_response
     )
 
-
 @router.get("/me", response_model=UserAuthResponse)
 def get_current_user_info(
     current_user: Utilisateur = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> Any:
-    """Retourne les informations de l'utilisateur connecté."""
-    
-    # ✅ Récupération des rôles - FORCER une liste
     roles = AuthService.get_user_roles(db, current_user)
-    
-    # ✅ S'assurer que roles est une liste, même si vide
     if not roles:
         roles = []
     elif isinstance(roles, str):
@@ -118,44 +102,29 @@ def get_current_user_info(
         post_nom=current_user.post_nom,
         prenom=current_user.prenom,
         telephone=current_user.telephone,
-        roles=roles,  # ✅ Liste garantie
+        roles=roles,
         est_actif=current_user.est_actif,
         last_login=current_user.last_login
     )
 
-
-# ✅ NOUVEAU : Route logout ajoutée
 @router.post("/logout", response_model=LogoutResponse, status_code=status.HTTP_200_OK)
 def logout(
     current_user: Utilisateur = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> Any:
-    """Déconnexion de l'utilisateur"""
     logger.info(f"✅ Déconnexion - User: {current_user.email}")
-    
-    # Optionnel : Invalider le token en base (si vous avez une blacklist)
-    # AuditService.log_action(db, current_user.id, "auth", current_user.id, "LOGOUT", None, None)
-    
-    return LogoutResponse(
-        message="Déconnexion réussie",
-        success=True
-    )
+    return LogoutResponse(message="Déconnexion réussie", success=True)
 
-
-# ✅ NOUVEAU : Route refresh token (optionnelle mais recommandée)
 @router.post("/refresh", response_model=Token)
 def refresh_token(
-    refresh_token: str,
+    refresh_data: RefreshTokenRequest,  # ← utilisation du schéma
     db: Session = Depends(get_db)
 ) -> Any:
-    """Rafraîchir le token d'accès"""
     try:
         from ...core.security import decode_token, create_access_token
         from datetime import timedelta
         
-        payload = decode_token(refresh_token)
-        
-        # Vérifier que c'est bien un refresh token
+        payload = decode_token(refresh_data.refresh_token)
         if payload.get("type") != "refresh":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -169,7 +138,6 @@ def refresh_token(
                 detail="Token invalide"
             )
         
-        # Vérifier que l'utilisateur existe toujours
         user = db.query(Utilisateur).filter(Utilisateur.id == int(user_id)).first()
         if not user or not user.est_actif:
             raise HTTPException(
@@ -177,16 +145,13 @@ def refresh_token(
                 detail="Utilisateur invalide ou désactivé"
             )
         
-        # Créer un nouveau access token
         new_access_token = create_access_token(user.id)
-        
         return Token(
             access_token=new_access_token,
-            refresh_token=refresh_token,  # Garder le même refresh token
+            refresh_token=refresh_data.refresh_token,
             token_type="bearer",
-            expires_in=30  # 30 minutes
+            expires_in=30
         )
-        
     except Exception as e:
         logger.error(f"Erreur refresh token: {e}")
         raise HTTPException(

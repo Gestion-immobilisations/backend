@@ -8,7 +8,8 @@ from io import BytesIO
 from ...core.database import get_db
 from ...models.bien import Bien
 from ...services.qr_code_service import QRCodeService
-from ...core.security import get_current_user
+#from ...core.security import get_current_user
+from ...api.dependencies import get_current_user
 from ...models.utilisateur import Utilisateur
 
 router = APIRouter(prefix="/qr-code", tags=["QR Code"])
